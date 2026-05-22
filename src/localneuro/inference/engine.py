@@ -112,7 +112,7 @@ class InferenceEngine:
         return list(self.generate_stream(prompt_ids, **kwargs))
 
     # ----------------------------------------------------------------- text
-    def generate_text(
+    def stream_text(
         self,
         prompt: str,
         *,
@@ -121,14 +121,11 @@ class InferenceEngine:
         add_bos: bool = True,
         stop_at_eos: bool = True,
         seed: Optional[int] = None,
-        on_token: Optional[Callable[[str], None]] = None,
-    ) -> str:
-        """Generate a text continuation of ``prompt``.
+    ) -> Iterator[str]:
+        """Generate a continuation of ``prompt``, yielding decoded text fragments.
 
-        If ``on_token`` is given it is called with each decoded text fragment as
-        soon as it is ready -- use it to stream output to a console. The
-        :class:`StreamDecoder` guarantees multi-byte UTF-8 characters are never
-        split across fragments.
+        The :class:`StreamDecoder` guarantees that multi-byte UTF-8 characters
+        are never split across two fragments.
         """
         prompt_ids: List[int] = []
         if add_bos and self.tokenizer.bos_id is not None:
@@ -140,7 +137,6 @@ class InferenceEngine:
             stop_ids.append(self.tokenizer.eos_id)
 
         decoder = StreamDecoder(self.tokenizer)
-        pieces: List[str] = []
         for token_id in self.generate_stream(
             prompt_ids,
             max_new_tokens=max_new_tokens,
@@ -150,12 +146,37 @@ class InferenceEngine:
         ):
             fragment = decoder.step(token_id)
             if fragment:
-                pieces.append(fragment)
-                if on_token is not None:
-                    on_token(fragment)
+                yield fragment
         tail = decoder.flush()
         if tail:
-            pieces.append(tail)
+            yield tail
+
+    def generate_text(
+        self,
+        prompt: str,
+        *,
+        max_new_tokens: int = 128,
+        sampling: Optional[SamplingConfig] = None,
+        add_bos: bool = True,
+        stop_at_eos: bool = True,
+        seed: Optional[int] = None,
+        on_token: Optional[Callable[[str], None]] = None,
+    ) -> str:
+        """Generate a continuation of ``prompt`` and return it as one string.
+
+        If ``on_token`` is given it receives each text fragment as soon as it is
+        ready -- use it to stream output to a console.
+        """
+        pieces: List[str] = []
+        for fragment in self.stream_text(
+            prompt,
+            max_new_tokens=max_new_tokens,
+            sampling=sampling,
+            add_bos=add_bos,
+            stop_at_eos=stop_at_eos,
+            seed=seed,
+        ):
+            pieces.append(fragment)
             if on_token is not None:
-                on_token(tail)
+                on_token(fragment)
         return "".join(pieces)

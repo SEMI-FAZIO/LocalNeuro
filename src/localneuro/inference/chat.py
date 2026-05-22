@@ -16,7 +16,7 @@ context window.
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Tuple
 
 from ..sampling import SamplingConfig
 from ..tokenizer.bpe import ASSISTANT, SYSTEM, USER, StreamDecoder
@@ -86,10 +86,12 @@ class ChatSession:
             ids = ids[-limit:]
         return ids
 
-    def send(
-        self, user_text: str, on_token: Optional[Callable[[str], None]] = None
-    ) -> str:
-        """Append a user message, generate a reply, and return it."""
+    def stream(self, user_text: str) -> Iterator[str]:
+        """Append a user message and yield the reply fragment by fragment.
+
+        Both the user message and the finished reply are recorded in
+        :attr:`history`.
+        """
         tokenizer = self.engine.tokenizer
         self.history.append(("user", user_text))
         prompt_ids = self._build_trimmed_prompt()
@@ -111,17 +113,26 @@ class ChatSession:
             fragment = decoder.step(token_id)
             if fragment:
                 pieces.append(fragment)
-                if on_token is not None:
-                    on_token(fragment)
+                yield fragment
         tail = decoder.flush()
         if tail:
             pieces.append(tail)
-            if on_token is not None:
-                on_token(tail)
+            yield tail
+        self.history.append(("assistant", "".join(pieces).strip()))
 
-        reply = "".join(pieces).strip()
-        self.history.append(("assistant", reply))
-        return reply
+    def send(
+        self, user_text: str, on_token: Optional[Callable[[str], None]] = None
+    ) -> str:
+        """Append a user message, generate a reply, and return it.
+
+        ``on_token`` (if given) receives each fragment as it is produced.
+        """
+        pieces: List[str] = []
+        for fragment in self.stream(user_text):
+            pieces.append(fragment)
+            if on_token is not None:
+                on_token(fragment)
+        return "".join(pieces).strip()
 
 
 def run_chat(

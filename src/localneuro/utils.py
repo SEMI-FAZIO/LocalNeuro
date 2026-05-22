@@ -13,7 +13,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import torch
@@ -119,6 +119,10 @@ class Logger:
 
     log_path: Optional[Path] = None
     quiet: bool = False
+    # Optional sink for every record/message -- used by the web UI to stream
+    # training metrics live. Receives structured records from ``log`` and
+    # ``{"message": ...}`` dicts from ``info``.
+    on_record: Optional[Callable[[Dict[str, Any]], None]] = None
     _start: float = 0.0
 
     def __post_init__(self) -> None:
@@ -131,6 +135,8 @@ class Logger:
         """Print a free-form line."""
         if not self.quiet:
             print(message, flush=True)
+        if self.on_record is not None:
+            self.on_record({"message": message})
 
     def log(self, record: Dict[str, Any]) -> None:
         """Record a structured metric event (printed and persisted as JSONL)."""
@@ -143,6 +149,8 @@ class Logger:
         if self.log_path is not None:
             with self.log_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+        if self.on_record is not None:
+            self.on_record(record)
 
 
 def _fmt(value: Any) -> str:

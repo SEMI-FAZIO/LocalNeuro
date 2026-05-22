@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 import random
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -44,11 +45,14 @@ class Trainer:
         train_config: TrainConfig,
         tokenizer: Optional[BPETokenizer] = None,
         logger: Optional[Logger] = None,
+        stop_event: Optional[threading.Event] = None,
     ) -> None:
         self.model = model
         self.model_config = model_config
         self.cfg = train_config
         self.tokenizer = tokenizer
+        # When set, the training loop exits cleanly at the next step boundary.
+        self._stop_event = stop_event
 
         if train_config.block_size > model_config.max_seq_len:
             raise ValueError(
@@ -202,6 +206,9 @@ class Trainer:
         self.model.train()
 
         while self.step < cfg.max_steps:
+            if self._stop_event is not None and self._stop_event.is_set():
+                self.logger.info("training stopped by request")
+                break
             lr = cosine_lr(
                 self.step,
                 base_lr=cfg.learning_rate,
