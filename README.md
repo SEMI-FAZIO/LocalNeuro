@@ -49,7 +49,8 @@ LocalNeuro/
 │   ├── data/               preprocessing, synthetic data, token datasets
 │   ├── training/           optimizer, LR schedule, trainer, evaluation
 │   ├── inference/          streaming generation engine + chat REPL
-│   └── quantization/       int8 / int4 weight quantization
+│   ├── quantization/       int8 / int4 weight quantization
+│   └── webui/              browser-based UI (HTTP server + static frontend)
 ├── scripts/                command-line tools (train, generate, chat, ...)
 ├── configs/                model size presets (tiny / small / base)
 ├── datasets/demo/          a small bundled text corpus
@@ -93,6 +94,29 @@ python examples/end_to_end.py
 
 See [examples/quickstart.md](examples/quickstart.md) for the step-by-step
 version using the command-line tools.
+
+---
+
+## Web UI
+
+LocalNeuro ships a browser-based interface -- chat, a generation playground, a
+checkpoint manager and a live training dashboard -- built entirely on the
+Python standard library (no extra dependencies):
+
+```bash
+python scripts/webui.py
+```
+
+This starts a local server at `http://127.0.0.1:8080/` and opens it in your
+browser. The four tabs:
+
+* **Chat** -- streaming, multi-turn conversation with the loaded model.
+* **Playground** -- free-form text completion with live sampling sliders.
+* **Models** -- browse and load checkpoints, and quantize them.
+* **Training** -- configure and launch a run, watching the loss curve update live.
+
+Options: `--port`, `--host 0.0.0.0` (expose on your LAN), `--device`,
+`--checkpoint <dir>` (load a model on startup), `--no-browser`.
 
 ---
 
