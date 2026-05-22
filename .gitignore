@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# LocalNeuro generated artifacts
+runs/
+checkpoints/
+*.lnw
+*.bin
+*.meta.json
+
+# Keep the demo corpus tracked, ignore generated token streams
+datasets/**/*.bin
+datasets/**/*.meta.json
+!datasets/demo/tiny_corpus.txt
+
+# ONNX exports
+*.onnx
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

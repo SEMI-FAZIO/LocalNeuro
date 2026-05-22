@@ -1,0 +1,53 @@
+LocalNeuro is a small language model that runs entirely on your own computer. It does not need a graphics card, a fast internet connection, or a remote server. The whole system is small enough to read in an afternoon and light enough to train on a modest laptop.
+
+A language model learns to predict the next piece of text from the text that came before it. When you read the first half of a sentence, you can often guess how it ends. The model turns that same guessing game into numbers, and it improves a little every time it sees more writing.
+
+The model is built from simple parts. Text is split into small tokens. Each token becomes a vector of numbers. The vectors pass through layers of attention, and attention lets every token look back at the tokens before it. At the end the model produces a score for every possible next token.
+
+Training is a long loop. The model reads a batch of text, makes a prediction, and measures how wrong it was. A small correction is then applied to every weight. After many thousands of steps the predictions grow sharp, and the loss curve flattens out near the bottom.
+
+Attention is the heart of the model. For every token the model forms a question, and for every earlier token it forms a key and a value. The question is compared with each key, the best matches are kept, and their values are blended together. In this way a token gathers the context it needs.
+
+A tokenizer is the bridge between letters and numbers. It begins with raw bytes and learns which pairs of bytes appear together most often. Those pairs are merged into longer tokens, again and again, until the vocabulary is full. Common words become single tokens, while rare words are still spelled out in pieces.
+
+Memory is the main limit on a small machine. Weights, gradients, and activations all compete for the same space. Quantization helps by storing each weight as a small integer instead of a wide floating point number. The model becomes lighter, and a larger network can fit in the same budget.
+
+The morning was quiet in the workshop. A thin light came through the window and rested on the bench. Tools hung in a neat row, each one in its place. The old engine waited on the table, patient and cold, ready to be repaired.
+
+She picked up the smallest wrench and began to work. The first bolt was stubborn and would not move. She tried again, slowly and with care, and at last it gave way. One by one the parts came loose, and the shape of the problem became clear.
+
+By the afternoon the engine was whole again. She wiped her hands, stepped back, and turned the key. The motor coughed once, then settled into a steady hum. The sound filled the small room like a held breath finally let go.
+
+Rivers begin as tiny streams high in the mountains. They gather rain and melted snow, and they grow wider as they travel. They carve valleys over a very long time. When they reach the sea, they carry with them a little of every place they have passed.
+
+The night sky is a slow and silent clock. The stars rise in the east and set in the west, just as the sun does. Some points of light are planets, and they drift against the fixed stars. A patient watcher learns to read the season from the sky.
+
+Seasons turn in a steady ring. Spring brings new leaves and a softer wind. Summer is long and bright and warm. Autumn paints the trees and lets the leaves fall. Winter covers the ground and holds the world still until spring returns.
+
+A good question is often more useful than a quick answer. A question marks the edge of what we know. It points at the next thing to learn. When you write code, a clear question can save an hour of blind searching.
+
+Software is built in small steps. You write a little, you run it, and you watch what happens. If it breaks, you read the error and you fix one thing. Slowly the program grows, and each step rests on the steps below it.
+
+Numbers have a quiet logic of their own. Two and two make four. Four and four make eight. Add the same amount again and again, and a pattern appears. The pattern can be continued forever, long after the writing stops.
+
+Counting is the first kind of order. One, two, three, four, five. The words are short and the steps are even. A child learns them by heart, and from that small ladder a whole tower of mathematics is later built.
+
+Practice is how a skill becomes easy. The first attempt is slow and full of mistakes. The tenth attempt is faster. The hundredth attempt feels like nothing at all. The work did not get smaller; the person doing it got stronger.
+
+A library is a calm place full of waiting voices. Every book holds a person who once sat down to write. To open a book is to begin a quiet conversation across a great distance of time. Nothing is needed but attention.
+
+The robot in the garden moved on small careful wheels. It watched the soil, the light, and the slow growth of every plant. When a plant was dry, the robot brought water. When a weed appeared, the robot gently pulled it free.
+
+Машинное обучение учит компьютер находить закономерности в данных. Модель смотрит на множество примеров и постепенно улучшает свои ответы. Чем больше текста она видит, тем точнее становится её догадка о следующем слове.
+
+Маленькая модель может работать прямо на обычном ноутбуке. Ей не нужен мощный сервер или дорогая видеокарта. Это делает технологию ближе и понятнее для каждого, кто хочет учиться.
+
+Good code is written to be read. The next person to open the file may be a stranger, or it may be you a year from now. Clear names and short functions are a kind of kindness. They turn a wall of symbols into a path that can be followed.
+
+Curiosity is a small engine that never runs out of fuel. It asks how, and it asks why, and it is rarely satisfied for long. A curious mind treats every answer as a doorway and walks straight through it to the next room.
+
+The captain studied the chart by the light of a single lamp. The harbor was near, but the channel was narrow and the night was dark. He held the wheel steady, trusting the marks he had learned, and brought the ship safely home.
+
+To learn a hard thing, break it into easy things. Each easy thing can be understood on its own. When the small pieces are clear, fit them back together. The hard thing has not changed, but now you can see all the way through it.
+
+Patience and attention are the two oldest tools. They cost nothing and they never wear out. With them a person can take apart almost any problem, look at every piece, and slowly understand how the whole thing works.

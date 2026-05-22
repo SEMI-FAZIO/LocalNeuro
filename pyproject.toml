@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localneuro"
+version = "0.1.0"
+description = "An ultra-lightweight, fully self-contained tiny language model: custom architecture, custom BPE tokenizer, custom training and CPU-first inference engine."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+keywords = ["llm", "transformer", "tokenizer", "cpu-inference", "from-scratch", "tiny-llm"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.2.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+onnx = ["onnx>=1.15.0", "onnxruntime>=1.17.0"]
+dev = ["pytest>=7.0.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+localneuro = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,16 @@
+{
+  "name": "base-40m",
+  "description": "Largest CPU-friendly preset (~40M parameters). Uses grouped-query attention (4 KV heads) to keep the KV cache small. 2048-token context.",
+  "vocab_size": 8192,
+  "d_model": 512,
+  "n_layers": 10,
+  "n_heads": 8,
+  "n_kv_heads": 4,
+  "d_ff": 1792,
+  "max_seq_len": 2048,
+  "rope_theta": 10000.0,
+  "dropout": 0.0,
+  "norm_eps": 1e-05,
+  "tie_embeddings": true,
+  "init_std": 0.02
+}

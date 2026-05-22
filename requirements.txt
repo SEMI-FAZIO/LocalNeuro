@@ -1,0 +1,13 @@
+# LocalNeuro runtime dependencies.
+# PyTorch is used ONLY as a low-level tensor / autograd framework.
+# The architecture, tokenizer, training loop and inference engine are all
+# implemented from scratch inside this repository.
+
+torch>=2.2.0
+numpy>=1.24.0
+
+# Optional (install manually if you need them):
+#   onnx>=1.15.0          # required by scripts/export_onnx.py
+#   onnxruntime>=1.17.0   # required to run exported ONNX graphs
+#   tensorboard>=2.14.0   # optional training metric dashboards
+#   pytest>=7.0.0         # required to run the test suite

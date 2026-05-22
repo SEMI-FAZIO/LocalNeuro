@@ -1,0 +1,16 @@
+{
+  "name": "small-15m",
+  "description": "Mid preset (~15M parameters). A good balance of quality and speed for 8 GB RAM machines.",
+  "vocab_size": 8192,
+  "d_model": 384,
+  "n_layers": 7,
+  "n_heads": 6,
+  "n_kv_heads": 6,
+  "d_ff": 1024,
+  "max_seq_len": 1024,
+  "rope_theta": 10000.0,
+  "dropout": 0.0,
+  "norm_eps": 1e-05,
+  "tie_embeddings": true,
+  "init_std": 0.02
+}
