@@ -9,13 +9,26 @@ from .dataset import (
     write_token_bin,
 )
 from .preprocessing import normalize_text, read_corpus, split_train_val
-from .synthetic import generate_synthetic_corpus, write_synthetic_corpus
+from .sft import (
+    InstructionExample,
+    SFTDataset,
+    build_sft_dataloader,
+    build_sft_example,
+    read_instructions_jsonl,
+    write_instructions_jsonl,
+)
+from .synthetic import (
+    generate_synthetic_corpus,
+    generate_synthetic_instructions,
+    write_synthetic_corpus,
+)
 
 __all__ = [
     "normalize_text",
     "read_corpus",
     "split_train_val",
     "generate_synthetic_corpus",
+    "generate_synthetic_instructions",
     "write_synthetic_corpus",
     "TokenDataset",
     "build_dataloader",
@@ -23,4 +36,10 @@ __all__ = [
     "infinite_loader",
     "load_token_meta",
     "write_token_bin",
+    "InstructionExample",
+    "SFTDataset",
+    "build_sft_example",
+    "build_sft_dataloader",
+    "read_instructions_jsonl",
+    "write_instructions_jsonl",
 ]

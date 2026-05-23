@@ -196,43 +196,67 @@
           <aside class="panel train-form">
             <h2 class="panel-title">Run configuration</h2>
             <div class="control control--wide">
-              <label>Model preset</label>
-              <select id="train-preset" class="text-input"></select>
-            </div>
-            <div id="train-custom" class="custom-fields hidden">
-              <div class="grid-2">
-                <div class="control"><label>d_model</label>
-                  <input type="number" id="train-dmodel" class="text-input" value="192" /></div>
-                <div class="control"><label>Layers</label>
-                  <input type="number" id="train-layers" class="text-input" value="4" /></div>
-                <div class="control"><label>Heads</label>
-                  <input type="number" id="train-heads" class="text-input" value="6" /></div>
-                <div class="control"><label>Max seq len</label>
-                  <input type="number" id="train-maxseq" class="text-input" value="512" /></div>
-              </div>
+              <label>Mode</label>
+              <select id="train-mode" class="text-input">
+                <option value="pretrain">Pretrain a new base model</option>
+                <option value="finetune">Fine-tune (instruction tuning)</option>
+              </select>
             </div>
             <div class="control control--wide">
               <label>Run name (checkpoints/&lt;name&gt;)</label>
               <input type="text" id="train-runname" class="text-input" value="gui-run" />
             </div>
+
+            <div id="pretrain-fields">
+              <div class="control control--wide">
+                <label>Model preset</label>
+                <select id="train-preset" class="text-input"></select>
+              </div>
+              <div id="train-custom" class="custom-fields hidden">
+                <div class="grid-2">
+                  <div class="control"><label>d_model</label>
+                    <input type="number" id="train-dmodel" class="text-input" value="192" /></div>
+                  <div class="control"><label>Layers</label>
+                    <input type="number" id="train-layers" class="text-input" value="4" /></div>
+                  <div class="control"><label>Heads</label>
+                    <input type="number" id="train-heads" class="text-input" value="6" /></div>
+                  <div class="control"><label>Max seq len</label>
+                    <input type="number" id="train-maxseq" class="text-input" value="512" /></div>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="control"><label>Vocab size</label>
+                  <input type="number" id="train-vocab" class="text-input" value="2048" /></div>
+                <div class="control"><label>Synthetic samples</label>
+                  <input type="number" id="train-synthetic" class="text-input" value="8000" /></div>
+              </div>
+              <label class="checkbox">
+                <input type="checkbox" id="train-demo" checked />
+                Include the bundled demo corpus
+              </label>
+            </div>
+
+            <div id="finetune-fields" class="hidden">
+              <div class="control control--wide">
+                <label>Base checkpoint to fine-tune</label>
+                <select id="train-base" class="text-input"></select>
+              </div>
+              <div class="control control--wide">
+                <label>Synthetic instructions</label>
+                <input type="number" id="train-instructions" class="text-input" value="4000" />
+              </div>
+            </div>
+
             <div class="grid-2">
               <div class="control"><label>Steps</label>
                 <input type="number" id="train-steps" class="text-input" value="600" /></div>
-              <div class="control"><label>Vocab size</label>
-                <input type="number" id="train-vocab" class="text-input" value="2048" /></div>
               <div class="control"><label>Batch size</label>
                 <input type="number" id="train-batch" class="text-input" value="16" /></div>
               <div class="control"><label>Block size</label>
                 <input type="number" id="train-block" class="text-input" value="128" /></div>
               <div class="control"><label>Learning rate</label>
                 <input type="number" id="train-lr" class="text-input" step="0.0001" value="0.0006" /></div>
-              <div class="control"><label>Synthetic samples</label>
-                <input type="number" id="train-synthetic" class="text-input" value="8000" /></div>
             </div>
-            <label class="checkbox">
-              <input type="checkbox" id="train-demo" checked />
-              Include the bundled demo corpus
-            </label>
           </aside>
 
           <div class="panel train-monitor">

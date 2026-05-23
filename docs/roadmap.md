@@ -8,9 +8,9 @@ fully implemented. This page lists directions for growth, not missing pieces.
 - **Sliding-window context.** When the KV cache fills, drop the oldest entries
   and keep generating instead of stopping. Lets generation continue past
   `max_seq_len`.
-- **Instruction / chat fine-tuning.** A second training stage on
-  prompt/response pairs, with the loss masked over the prompt tokens, so the
-  chat REPL produces genuinely conversational output.
+- **Multi-turn instruction data.** Instruction fine-tuning (single-turn) is
+  implemented; a natural next step is synthetic *multi-turn* conversations and
+  loss masking across several assistant turns.
 - **Dropout-free regularization options.** Weight averaging (EMA of weights)
   for steadier small-model training.
 

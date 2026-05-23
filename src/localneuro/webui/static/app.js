@@ -275,6 +275,7 @@ async function loadCheckpoints() {
     const data = await api("GET", "/api/checkpoints");
     renderCheckpoints(data.checkpoints);
     populateQuantSource(data.checkpoints);
+    populateFinetuneBase(data.checkpoints);
     populateTrainPresets(data.configs);
   } catch (err) {
     $("#models-list").innerHTML =
@@ -298,6 +299,8 @@ function renderCheckpoints(checkpoints) {
     const quant = ckpt.quantization
       ? '<span class="badge badge--quant">int' + ckpt.quantization + "</span>"
       : "";
+    const sft = ckpt.stage === "sft"
+      ? '<span class="badge badge--sft">SFT</span>' : "";
     const active = ckpt.active
       ? '<span class="badge badge--active">active</span>' : "";
     const step = ckpt.step != null ? "step " + ckpt.step + " · " : "";
@@ -305,7 +308,7 @@ function renderCheckpoints(checkpoints) {
     const info = document.createElement("div");
     info.className = "ckpt-info";
     info.innerHTML =
-      '<div class="ckpt-name">' + escapeHtml(ckpt.name) + quant + active + "</div>" +
+      '<div class="ckpt-name">' + escapeHtml(ckpt.name) + quant + sft + active + "</div>" +
       '<div class="ckpt-meta">' + ckpt.params_human + " params · " +
       ckpt.n_layers + "L · ctx " + ckpt.max_seq_len + " · " +
       step + fmtBytes(ckpt.size_bytes) + "</div>";
@@ -396,6 +399,38 @@ function populateTrainPresets(configs) {
 function onPresetChange() {
   const isCustom = $("#train-preset").value === "custom";
   $("#train-custom").classList.toggle("hidden", !isCustom);
+}
+
+function populateFinetuneBase(checkpoints) {
+  const select = $("#train-base");
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = "";
+  // A quantized checkpoint cannot be fine-tuned -- its weights are frozen.
+  const usable = (checkpoints || []).filter((c) => !c.quantization);
+  if (!usable.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "(no base checkpoints -- pretrain one first)";
+    select.appendChild(option);
+    return;
+  }
+  usable.forEach((ckpt) => {
+    const option = document.createElement("option");
+    option.value = ckpt.path;
+    option.textContent = ckpt.name + "  (" + ckpt.params_human + ")";
+    select.appendChild(option);
+  });
+  if (current) select.value = current;
+}
+
+function onTrainModeChange() {
+  const finetune = $("#train-mode").value === "finetune";
+  $("#pretrain-fields").classList.toggle("hidden", finetune);
+  $("#finetune-fields").classList.toggle("hidden", !finetune);
+  // The two modes need very different learning rates and block sizes.
+  $("#train-lr").value = finetune ? "0.00005" : "0.0006";
+  $("#train-block").value = finetune ? "256" : "128";
 }
 
 function setTrainStatus(status) {
@@ -489,23 +524,41 @@ async function refreshTraining() {
 }
 
 async function startTraining() {
-  const preset = $("#train-preset").value;
-  const params = {
-    preset: preset,
+  const mode = $("#train-mode").value;
+  const shared = {
     run_name: $("#train-runname").value.trim() || "gui-run",
-    vocab_size: parseInt($("#train-vocab").value, 10),
-    synthetic_samples: parseInt($("#train-synthetic").value, 10),
-    use_demo_corpus: $("#train-demo").checked,
     steps: parseInt($("#train-steps").value, 10),
     batch_size: parseInt($("#train-batch").value, 10),
     block_size: parseInt($("#train-block").value, 10),
     learning_rate: parseFloat($("#train-lr").value),
   };
-  if (preset === "custom") {
-    params.d_model = parseInt($("#train-dmodel").value, 10);
-    params.n_layers = parseInt($("#train-layers").value, 10);
-    params.n_heads = parseInt($("#train-heads").value, 10);
-    params.max_seq_len = parseInt($("#train-maxseq").value, 10);
+  let params;
+  if (mode === "finetune") {
+    const base = $("#train-base").value;
+    if (!base) {
+      toast("No base checkpoint -- pretrain one first", true);
+      return;
+    }
+    params = Object.assign({}, shared, {
+      mode: "finetune",
+      base_checkpoint: base,
+      synthetic_instructions: parseInt($("#train-instructions").value, 10),
+    });
+  } else {
+    const preset = $("#train-preset").value;
+    params = Object.assign({}, shared, {
+      mode: "pretrain",
+      preset: preset,
+      vocab_size: parseInt($("#train-vocab").value, 10),
+      synthetic_samples: parseInt($("#train-synthetic").value, 10),
+      use_demo_corpus: $("#train-demo").checked,
+    });
+    if (preset === "custom") {
+      params.d_model = parseInt($("#train-dmodel").value, 10);
+      params.n_layers = parseInt($("#train-layers").value, 10);
+      params.n_heads = parseInt($("#train-heads").value, 10);
+      params.max_seq_len = parseInt($("#train-maxseq").value, 10);
+    }
   }
   try {
     await api("POST", "/api/train/start", params);
@@ -634,6 +687,7 @@ function init() {
   $("#quant-run").addEventListener("click", runQuantize);
 
   // training
+  $("#train-mode").addEventListener("change", onTrainModeChange);
   $("#train-preset").addEventListener("change", onPresetChange);
   $("#train-start").addEventListener("click", startTraining);
   $("#train-stop").addEventListener("click", stopTraining);

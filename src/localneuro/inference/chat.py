@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import Callable, Iterator, List, Optional, Tuple
 
+from ..chat_format import format_chat
 from ..sampling import SamplingConfig
 from ..tokenizer.bpe import ASSISTANT, SYSTEM, USER, StreamDecoder
 from .engine import InferenceEngine
@@ -51,28 +52,18 @@ class ChatSession:
         """Clear the conversation history."""
         self.history.clear()
 
-    def _encode_turn(self, role_token: str, text: str) -> List[int]:
-        tokenizer = self.engine.tokenizer
-        return [tokenizer.special_id(role_token)] + tokenizer.encode_ordinary(text)
-
     def _build_prompt(self) -> List[int]:
-        """Render the full conversation into a token id sequence."""
-        tokenizer = self.engine.tokenizer
-        ids: List[int] = []
-        if tokenizer.bos_id is not None:
-            ids.append(tokenizer.bos_id)
-        if self.system_prompt:
-            ids += self._encode_turn(SYSTEM, self.system_prompt)
-        for role, text in self.history:
-            if role == "user":
-                ids += self._encode_turn(USER, text)
-            else:
-                ids += self._encode_turn(ASSISTANT, text)
-                if tokenizer.eos_id is not None:
-                    ids.append(tokenizer.eos_id)
-        # Open an assistant turn for the model to complete.
-        ids.append(tokenizer.special_id(ASSISTANT))
-        return ids
+        """Render the full conversation into a token id sequence.
+
+        Uses the shared :func:`localneuro.chat_format.format_chat` helper so the
+        layout matches exactly what instruction fine-tuning trains on.
+        """
+        return format_chat(
+            self.engine.tokenizer,
+            self.history,
+            system=self.system_prompt,
+            add_generation_prompt=True,
+        )
 
     def _build_trimmed_prompt(self) -> List[int]:
         """Build the prompt, dropping the oldest turns if it would overflow."""

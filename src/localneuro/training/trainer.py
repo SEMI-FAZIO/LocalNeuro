@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 import torch
+from torch.utils.data import DataLoader
 
 from ..checkpoint import checkpoint_exists, save_checkpoint
 from ..config import ModelConfig, TrainConfig
@@ -46,6 +47,9 @@ class Trainer:
         tokenizer: Optional[BPETokenizer] = None,
         logger: Optional[Logger] = None,
         stop_event: Optional[threading.Event] = None,
+        train_loader: Optional[DataLoader] = None,
+        val_loader: Optional[DataLoader] = None,
+        extra_meta: Optional[dict] = None,
     ) -> None:
         self.model = model
         self.model_config = model_config
@@ -53,6 +57,9 @@ class Trainer:
         self.tokenizer = tokenizer
         # When set, the training loop exits cleanly at the next step boundary.
         self._stop_event = stop_event
+        # Extra key/values merged into every saved checkpoint's meta.json
+        # (used by fine-tuning to tag the checkpoint stage).
+        self._extra_meta = dict(extra_meta or {})
 
         if train_config.block_size > model_config.max_seq_len:
             raise ValueError(
@@ -86,23 +93,28 @@ class Trainer:
         )
 
         # --- data ---------------------------------------------------------
-        self.train_loader = build_dataloader(
-            train_config.train_bin,
-            train_config.block_size,
-            train_config.batch_size,
-            shuffle=True,
-            num_workers=train_config.num_workers,
-        )
+        # Loaders may be injected (e.g. an SFTDataset loader for fine-tuning);
+        # otherwise they are built from the token .bin files in train_config.
+        if train_loader is not None:
+            self.train_loader = train_loader
+        else:
+            self.train_loader = build_dataloader(
+                train_config.train_bin,
+                train_config.block_size,
+                train_config.batch_size,
+                shuffle=True,
+                num_workers=train_config.num_workers,
+            )
         if len(self.train_loader) == 0:
             raise ValueError(
-                f"training data '{train_config.train_bin}' is too small to form a "
-                f"single batch of batch_size={train_config.batch_size}, "
-                f"block_size={train_config.block_size}. Reduce those values or "
-                f"prepare more data (e.g. add --synthetic-samples)."
+                "the training data is too small to form a single batch; reduce "
+                "batch_size / block_size or provide more data."
             )
         self._train_iter = infinite_loader(self.train_loader)
-        self.val_loader = None
-        if Path(str(train_config.val_bin) + ".meta.json").exists():
+
+        if val_loader is not None:
+            self.val_loader = val_loader
+        elif Path(str(train_config.val_bin) + ".meta.json").exists():
             self.val_loader = build_dataloader(
                 train_config.val_bin,
                 train_config.block_size,
@@ -110,6 +122,8 @@ class Trainer:
                 shuffle=False,
                 num_workers=train_config.num_workers,
             )
+        else:
+            self.val_loader = None
 
         # --- run state ----------------------------------------------------
         self.step = 0
@@ -150,6 +164,7 @@ class Trainer:
             "val_loss": val_loss if math.isfinite(val_loss) else None,
             "best_val": self.best_val if math.isfinite(self.best_val) else None,
             "created": datetime.now().isoformat(timespec="seconds"),
+            **self._extra_meta,
         }
         # Save the underlying model, not a torch.compile wrapper, so the
         # state-dict keys stay un-prefixed and load into a plain LocalNeuroLM.

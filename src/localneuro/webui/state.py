@@ -65,6 +65,7 @@ class WebUIState:
             "max_seq_len": config.max_seq_len,
             "step": meta.get("step"),
             "quantization": meta.get("quantization"),
+            "stage": meta.get("stage"),
             "size_bytes": weights.stat().st_size if weights.exists() else 0,
             "has_tokenizer": (directory / "tokenizer.json").exists(),
             "active": self.active_checkpoint is not None

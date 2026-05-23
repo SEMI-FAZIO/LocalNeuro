@@ -256,6 +256,7 @@ input[type="range"]::-moz-range-thumb {
   text-transform: uppercase; letter-spacing: 0.4px;
 }
 .badge--quant { background: #2c2438; color: #c79be8; }
+.badge--sft { background: #243a38; color: #6fd6c4; }
 .badge--active { background: var(--accent-soft); color: var(--accent); }
 .quant-result { margin-top: 12px; font-size: 13px; line-height: 1.6; }
 .quant-result .ok { color: var(--accent); }

@@ -44,9 +44,10 @@ LocalNeuro/
 │   ├── modules.py          attention, RoPE, RMSNorm, SwiGLU
 │   ├── kv_cache.py         key/value cache for fast decoding
 │   ├── sampling.py         temperature / top-k / top-p / repetition penalty
+│   ├── chat_format.py      shared chat layout (training == inference)
 │   ├── checkpoint.py       pickle-free, memory-mappable .lnw weight format
 │   ├── tokenizer/          from-scratch byte-level BPE tokenizer
-│   ├── data/               preprocessing, synthetic data, token datasets
+│   ├── data/               preprocessing, synthetic data, token + SFT datasets
 │   ├── training/           optimizer, LR schedule, trainer, evaluation
 │   ├── inference/          streaming generation engine + chat REPL
 │   ├── quantization/       int8 / int4 weight quantization
@@ -153,6 +154,44 @@ Key training options (`python scripts/train.py --help` for all of them):
 | `--precision` | `fp32` (default), `bf16` (modern CPUs/GPUs), `fp16` (CUDA) |
 | `--grad-checkpoint` | recompute activations to cut memory ~40% |
 | `--device` | `auto`, `cpu`, `cuda`, `mps` |
+
+---
+
+## Instruction fine-tuning
+
+Pretraining teaches the model to *continue* text. A second stage --
+**supervised instruction fine-tuning (SFT)** -- teaches it to *answer*: it
+trains on instruction/response pairs in the chat layout, with the loss applied
+only to the response. This is what turns a text-continuer into a model that
+gives meaningful chat replies.
+
+```bash
+# fine-tune a pretrained checkpoint on generated instruction data
+python scripts/finetune.py --checkpoint checkpoints/run --out-dir checkpoints/run-sft
+
+# then chat with the instruction-tuned model
+python scripts/chat.py --checkpoint checkpoints/run-sft
+```
+
+`finetune.py` generates synthetic instruction pairs by default. To use your
+own, pass a JSON Lines file (one `{"instruction": ..., "response": ...}` per
+line) with `--data my_instructions.jsonl`. Fine-tuning is also available in the
+web UI's **Training** tab -- switch the *Mode* selector to "Fine-tune".
+
+`examples/instruction_tuning.py` runs the full pretrain -> fine-tune ->
+before/after comparison in one command.
+
+### Training on an open dataset
+
+For a more coherent base model, pretrain on a real open corpus alongside the
+synthetic data. `download_data.py` fetches one (plain text only -- never model
+weights):
+
+```bash
+python scripts/download_data.py --name tinystories
+python scripts/prepare_data.py --input datasets/tinystories.txt --synthetic-samples 8000
+python scripts/train.py --config configs/base-40m.json --steps 20000
+```
 
 ---
 
