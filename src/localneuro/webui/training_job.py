@@ -26,6 +26,7 @@ from ..model import LocalNeuroLM
 from ..tokenizer.bpe import BPETokenizer
 from ..training.trainer import Trainer
 from ..utils import Logger, set_seed
+from .state import resolve_within_root
 
 PathLike = Union[str, Path]
 
@@ -265,11 +266,19 @@ class TrainingJob:
         run_name: str, out_dir: Path,
     ) -> None:
         """Instruction-fine-tune an existing base checkpoint (SFT)."""
-        base = str(params.get("base_checkpoint") or "").strip()
-        if not base or not checkpoint_exists(Path(base)):
-            raise ValueError(f"base checkpoint not found: {base!r}")
-        self._log(f"loading base checkpoint: {base}")
-        bundle = load_checkpoint(base, build_model=True, map_location="cpu")
+        raw = str(params.get("base_checkpoint") or "").strip()
+        if not raw:
+            raise ValueError("base checkpoint is required for fine-tuning")
+        # Refuse any path outside project_root: the same RCE risk applies as
+        # to /api/load (trainer_state.pt is a pickle).
+        base_path = resolve_within_root(self.project_root, raw)
+        if not checkpoint_exists(base_path):
+            raise ValueError(f"base checkpoint not found: {raw!r}")
+        self._log(f"loading base checkpoint: {base_path}")
+        bundle = load_checkpoint(
+            base_path, build_model=True, map_location="cpu",
+            load_trainer_state=False,
+        )
         if bundle.tokenizer is None:
             raise ValueError("base checkpoint has no tokenizer")
         if bundle.meta.get("quantization"):
@@ -328,7 +337,7 @@ class TrainingJob:
             bundle.model, model_config, train_config,
             tokenizer=tokenizer, logger=logger, stop_event=self.stop_event,
             train_loader=train_loader, val_loader=val_loader,
-            extra_meta={"stage": "sft", "base_checkpoint": base},
+            extra_meta={"stage": "sft", "base_checkpoint": str(base_path)},
         )
         trainer.train()
         self._finish_run(run_name, out_dir, trainer.step)

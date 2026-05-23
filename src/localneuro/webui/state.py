@@ -24,6 +24,26 @@ from ..utils import human_count, resolve_device
 PathLike = Union[str, Path]
 
 
+def resolve_within_root(project_root: Path, path: PathLike) -> Path:
+    """Resolve ``path`` and refuse anything outside ``project_root``.
+
+    Without this guard the web UI's load / quantize / fine-tune endpoints
+    would accept any absolute path from the HTTP body. That is a real risk:
+    a checkpoint bundle may contain ``trainer_state.pt``, which is a pickle,
+    and any attacker who can reach the bound port (e.g. via ``--host
+    0.0.0.0``) could craft one that executes arbitrary code on
+    ``torch.load``. The web UI flows also pass ``load_trainer_state=False``
+    for defence in depth; this function is the front line.
+    """
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = project_root / candidate
+    resolved = candidate.resolve()
+    if resolved != project_root and project_root not in resolved.parents:
+        raise ValueError(f"path is outside the project root: {path!r}")
+    return resolved
+
+
 class WebUIState:
     """Holds the loaded model and serves inference requests for the web UI."""
 
@@ -42,6 +62,9 @@ class WebUIState:
             return path.resolve().relative_to(self.project_root).as_posix()
         except ValueError:
             return str(path)
+
+    def _resolve_within_root(self, path: PathLike) -> Path:
+        return resolve_within_root(self.project_root, path)
 
     def _describe_checkpoint(self, directory: Path) -> Dict[str, object]:
         config = ModelConfig.load(directory / "config.json")
@@ -109,12 +132,15 @@ class WebUIState:
     # ----------------------------------------------------------- model load
     def load(self, path: PathLike) -> Dict[str, object]:
         """Load a checkpoint and make it the active inference model."""
-        directory = Path(path).resolve()
+        directory = self._resolve_within_root(path)
         if not checkpoint_exists(directory):
             raise ValueError(f"not a checkpoint directory: {directory}")
         bundle = load_checkpoint(
             directory, build_model=True,
             map_location=str(self.device), mmap=True,
+            # Never deserialize a foreign pickle from the web UI: inference
+            # needs only weights / config / tokenizer.
+            load_trainer_state=False,
         )
         if bundle.tokenizer is None:
             raise ValueError("checkpoint has no tokenizer.json")
@@ -223,17 +249,17 @@ class WebUIState:
         self, input_path: PathLike, output_path: PathLike, bits: int
     ) -> Dict[str, object]:
         """Quantize a checkpoint to int8/int4 and save a new checkpoint."""
-        source = Path(input_path).resolve()
-        target = Path(output_path)
-        if not target.is_absolute():
-            target = (self.project_root / target)
-        target = target.resolve()
+        source = self._resolve_within_root(input_path)
+        target = self._resolve_within_root(output_path)
         if not checkpoint_exists(source):
             raise ValueError(f"not a checkpoint directory: {source}")
         if target == source:
             raise ValueError("output directory must differ from the input")
         size_before = (source / "weights.lnw").stat().st_size
-        bundle = load_checkpoint(source, build_model=True, map_location="cpu")
+        bundle = load_checkpoint(
+            source, build_model=True, map_location="cpu",
+            load_trainer_state=False,
+        )
         layers = quantize_model(bundle.model, bits=bits)
         meta = dict(bundle.meta)
         meta["quantization"] = bits
