@@ -204,6 +204,7 @@ def load_checkpoint(
     build_model: bool = True,
     map_location: str = "cpu",
     mmap: bool = True,
+    load_trainer_state: bool = True,
 ) -> LoadedCheckpoint:
     """Load a checkpoint bundle.
 
@@ -216,6 +217,13 @@ def load_checkpoint(
         Device the model is moved to after loading.
     mmap:
         Memory-map the weight file (low-memory loading).
+    load_trainer_state:
+        When true (default) read ``trainer_state.pt`` if present. That file is
+        a pickle (``torch.load(weights_only=False)``) and so must only be
+        loaded from checkpoints you produced yourself -- pass ``False`` for any
+        flow that may handle a checkpoint coming from outside the user's own
+        runs (e.g. the web UI's load-by-path endpoint), where executing
+        arbitrary code via a crafted pickle would be a real risk.
     """
     directory = Path(checkpoint_dir)
     if not directory.is_dir():
@@ -235,7 +243,7 @@ def load_checkpoint(
 
     trainer_state = None
     state_path = directory / "trainer_state.pt"
-    if state_path.exists():
+    if load_trainer_state and state_path.exists():
         trainer_state = torch.load(
             state_path, map_location=map_location, weights_only=False
         )

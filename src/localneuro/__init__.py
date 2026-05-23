@@ -40,6 +40,7 @@ _EXPORTS = {
     "run_chat": "localneuro.inference",
     "quantize_model": "localneuro.quantization",
     "QuantizedLinear": "localneuro.quantization",
+    "serve": "localneuro.webui",
 }
 
 __all__ = ["__version__", *sorted(_EXPORTS)]

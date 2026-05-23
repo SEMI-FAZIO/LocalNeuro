@@ -64,6 +64,19 @@ python scripts/generate.py --checkpoint checkpoints/run --prompt "the model"
 python scripts/chat.py --checkpoint checkpoints/run
 ```
 
+### Fine-tune for meaningful answers
+
+A pretrained model only *continues* text. Instruction fine-tuning teaches it to
+*answer* questions:
+
+```bash
+python scripts/finetune.py --checkpoint checkpoints/run --out-dir checkpoints/run-sft
+python scripts/chat.py --checkpoint checkpoints/run-sft
+```
+
+`examples/instruction_tuning.py` runs the whole pretrain -> fine-tune ->
+before/after comparison in one command.
+
 ### Quantize for low-memory inference
 
 ```bash
@@ -79,6 +92,13 @@ Point `--input` at your own UTF-8 text files:
 python scripts/train_tokenizer.py --input mydata/*.txt --vocab-size 8000
 python scripts/prepare_data.py --input mydata/*.txt --tokenizer checkpoints/tokenizer.json
 python scripts/train.py --config configs/small-15m.json --steps 20000
+```
+
+For a more coherent base model, also pull in an open text corpus:
+
+```bash
+python scripts/download_data.py --name tinystories
+python scripts/prepare_data.py --input datasets/tinystories.txt --synthetic-samples 8000
 ```
 
 ## 4. Tuning for your hardware

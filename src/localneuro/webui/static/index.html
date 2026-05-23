@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LocalNeuro</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============================ SIDEBAR ============================ -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">LocalNeuro</span>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="chat">
+          <span class="nav-dot"></span> Chat
+        </button>
+        <button class="nav-item" data-view="playground">
+          <span class="nav-dot"></span> Playground
+        </button>
+        <button class="nav-item" data-view="models">
+          <span class="nav-dot"></span> Models
+        </button>
+        <button class="nav-item" data-view="training">
+          <span class="nav-dot"></span> Training
+        </button>
+      </nav>
+      <div class="sidebar-foot">
+        <div id="active-model" class="model-chip model-chip--empty">No model loaded</div>
+        <div id="device-info" class="muted small"></div>
+      </div>
+    </aside>
+
+    <!-- ============================== MAIN ============================= -->
+    <main class="main">
+
+      <!-- ----------------------------- CHAT ---------------------------- -->
+      <section id="view-chat" class="view active">
+        <header class="view-head">
+          <h1>Chat</h1>
+          <div class="head-actions">
+            <button id="chat-settings-toggle" class="btn btn-ghost">Settings</button>
+            <button id="chat-clear" class="btn btn-ghost">Clear</button>
+          </div>
+        </header>
+
+        <div id="chat-settings" class="settings-panel hidden">
+          <div class="control control--wide">
+            <label>System prompt</label>
+            <textarea id="chat-system" rows="2"
+              placeholder="Optional instruction for the assistant"></textarea>
+          </div>
+          <div class="control">
+            <label>Temperature <span class="val" id="chat-temp-val">0.8</span></label>
+            <input type="range" id="chat-temp" min="0" max="2" step="0.05" value="0.8" />
+          </div>
+          <div class="control">
+            <label>Top-k <span class="val" id="chat-topk-val">40</span></label>
+            <input type="range" id="chat-topk" min="0" max="200" step="1" value="40" />
+          </div>
+          <div class="control">
+            <label>Top-p <span class="val" id="chat-topp-val">0.95</span></label>
+            <input type="range" id="chat-topp" min="0.05" max="1" step="0.01" value="0.95" />
+          </div>
+          <div class="control">
+            <label>Repetition penalty <span class="val" id="chat-reppen-val">1.15</span></label>
+            <input type="range" id="chat-reppen" min="1" max="2" step="0.01" value="1.15" />
+          </div>
+          <div class="control">
+            <label>Max new tokens <span class="val" id="chat-maxtok-val">200</span></label>
+            <input type="range" id="chat-maxtok" min="16" max="1024" step="16" value="200" />
+          </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+          <div class="placeholder" id="chat-placeholder">
+            Load a model from the <b>Models</b> tab, then start chatting.
+          </div>
+        </div>
+
+        <div class="composer">
+          <textarea id="chat-input" rows="1"
+            placeholder="Type a message and press Enter..."></textarea>
+          <button id="chat-send" class="btn btn-primary">Send</button>
+        </div>
+      </section>
+
+      <!-- -------------------------- PLAYGROUND ------------------------- -->
+      <section id="view-playground" class="view">
+        <header class="view-head">
+          <h1>Playground</h1>
+          <div class="head-actions">
+            <button id="pg-generate" class="btn btn-primary">Generate</button>
+            <button id="pg-stop" class="btn btn-ghost" disabled>Stop</button>
+          </div>
+        </header>
+
+        <div class="playground">
+          <div class="pg-main">
+            <label class="field-label">Prompt</label>
+            <textarea id="pg-prompt" class="pg-prompt"
+              placeholder="Write a prompt for the model to continue...">the model</textarea>
+            <label class="field-label">Output</label>
+            <div id="pg-output" class="pg-output">
+              <span class="muted">Generated text will appear here.</span>
+            </div>
+          </div>
+          <aside class="pg-controls">
+            <div class="control">
+              <label>Temperature <span class="val" id="pg-temp-val">0.8</span></label>
+              <input type="range" id="pg-temp" min="0" max="2" step="0.05" value="0.8" />
+            </div>
+            <div class="control">
+              <label>Top-k <span class="val" id="pg-topk-val">40</span></label>
+              <input type="range" id="pg-topk" min="0" max="200" step="1" value="40" />
+            </div>
+            <div class="control">
+              <label>Top-p <span class="val" id="pg-topp-val">0.95</span></label>
+              <input type="range" id="pg-topp" min="0.05" max="1" step="0.01" value="0.95" />
+            </div>
+            <div class="control">
+              <label>Repetition penalty <span class="val" id="pg-reppen-val">1.10</span></label>
+              <input type="range" id="pg-reppen" min="1" max="2" step="0.01" value="1.10" />
+            </div>
+            <div class="control">
+              <label>Max new tokens <span class="val" id="pg-maxtok-val">120</span></label>
+              <input type="range" id="pg-maxtok" min="16" max="1024" step="16" value="120" />
+            </div>
+            <div class="control">
+              <label>Seed (blank = random)</label>
+              <input type="number" id="pg-seed" class="text-input" placeholder="random" />
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ---------------------------- MODELS --------------------------- -->
+      <section id="view-models" class="view">
+        <header class="view-head">
+          <h1>Models</h1>
+          <div class="head-actions">
+            <button id="models-refresh" class="btn btn-ghost">Refresh</button>
+          </div>
+        </header>
+
+        <div class="models-wrap">
+          <div class="panel">
+            <h2 class="panel-title">Checkpoints</h2>
+            <div id="models-list" class="models-list">
+              <div class="placeholder">Scanning checkpoints...</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">Quantize a checkpoint</h2>
+            <p class="muted small">
+              Store weights as int8 / int4 to shrink the model for low-memory use.
+            </p>
+            <div class="control control--wide">
+              <label>Source checkpoint</label>
+              <select id="quant-source" class="text-input"></select>
+            </div>
+            <div class="control control--wide">
+              <label>Precision</label>
+              <select id="quant-bits" class="text-input">
+                <option value="8">int8 (~2-3x smaller)</option>
+                <option value="4">int4 (~3-5x smaller)</option>
+              </select>
+            </div>
+            <div class="control control--wide">
+              <label>Output name (under checkpoints/)</label>
+              <input type="text" id="quant-output" class="text-input"
+                placeholder="run-int8" />
+            </div>
+            <button id="quant-run" class="btn btn-primary">Quantize</button>
+            <div id="quant-result" class="quant-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- --------------------------- TRAINING -------------------------- -->
+      <section id="view-training" class="view">
+        <header class="view-head">
+          <h1>Training</h1>
+          <div class="head-actions">
+            <span id="train-status" class="status-badge status--idle">idle</span>
+            <button id="train-start" class="btn btn-primary">Start</button>
+            <button id="train-stop" class="btn btn-ghost" disabled>Stop</button>
+          </div>
+        </header>
+
+        <div class="training-wrap">
+          <aside class="panel train-form">
+            <h2 class="panel-title">Run configuration</h2>
+            <div class="control control--wide">
+              <label>Mode</label>
+              <select id="train-mode" class="text-input">
+                <option value="pretrain">Pretrain a new base model</option>
+                <option value="finetune">Fine-tune (instruction tuning)</option>
+              </select>
+            </div>
+            <div class="control control--wide">
+              <label>Run name (checkpoints/&lt;name&gt;)</label>
+              <input type="text" id="train-runname" class="text-input" value="gui-run" />
+            </div>
+
+            <div id="pretrain-fields">
+              <div class="control control--wide">
+                <label>Model preset</label>
+                <select id="train-preset" class="text-input"></select>
+              </div>
+              <div id="train-custom" class="custom-fields hidden">
+                <div class="grid-2">
+                  <div class="control"><label>d_model</label>
+                    <input type="number" id="train-dmodel" class="text-input" value="192" /></div>
+                  <div class="control"><label>Layers</label>
+                    <input type="number" id="train-layers" class="text-input" value="4" /></div>
+                  <div class="control"><label>Heads</label>
+                    <input type="number" id="train-heads" class="text-input" value="6" /></div>
+                  <div class="control"><label>Max seq len</label>
+                    <input type="number" id="train-maxseq" class="text-input" value="512" /></div>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="control"><label>Vocab size</label>
+                  <input type="number" id="train-vocab" class="text-input" value="2048" /></div>
+                <div class="control"><label>Synthetic samples</label>
+                  <input type="number" id="train-synthetic" class="text-input" value="8000" /></div>
+              </div>
+              <label class="checkbox">
+                <input type="checkbox" id="train-demo" checked />
+                Include the bundled demo corpus
+              </label>
+            </div>
+
+            <div id="finetune-fields" class="hidden">
+              <div class="control control--wide">
+                <label>Base checkpoint to fine-tune</label>
+                <select id="train-base" class="text-input"></select>
+              </div>
+              <div class="control control--wide">
+                <label>Synthetic instructions</label>
+                <input type="number" id="train-instructions" class="text-input" value="4000" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="control"><label>Steps</label>
+                <input type="number" id="train-steps" class="text-input" value="600" /></div>
+              <div class="control"><label>Batch size</label>
+                <input type="number" id="train-batch" class="text-input" value="16" /></div>
+              <div class="control"><label>Block size</label>
+                <input type="number" id="train-block" class="text-input" value="128" /></div>
+              <div class="control"><label>Learning rate</label>
+                <input type="number" id="train-lr" class="text-input" step="0.0001" value="0.0006" /></div>
+            </div>
+          </aside>
+
+          <div class="panel train-monitor">
+            <h2 class="panel-title">Loss</h2>
+            <canvas id="loss-chart" class="loss-chart" width="640" height="240"></canvas>
+            <div class="chart-legend">
+              <span class="legend legend--train">train loss</span>
+              <span class="legend legend--val">val loss</span>
+            </div>
+            <h2 class="panel-title">Log</h2>
+            <div id="train-log" class="train-log"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

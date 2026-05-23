@@ -16,8 +16,9 @@ context window.
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Tuple
 
+from ..chat_format import format_chat
 from ..sampling import SamplingConfig
 from ..tokenizer.bpe import ASSISTANT, SYSTEM, USER, StreamDecoder
 from .engine import InferenceEngine
@@ -51,28 +52,18 @@ class ChatSession:
         """Clear the conversation history."""
         self.history.clear()
 
-    def _encode_turn(self, role_token: str, text: str) -> List[int]:
-        tokenizer = self.engine.tokenizer
-        return [tokenizer.special_id(role_token)] + tokenizer.encode_ordinary(text)
-
     def _build_prompt(self) -> List[int]:
-        """Render the full conversation into a token id sequence."""
-        tokenizer = self.engine.tokenizer
-        ids: List[int] = []
-        if tokenizer.bos_id is not None:
-            ids.append(tokenizer.bos_id)
-        if self.system_prompt:
-            ids += self._encode_turn(SYSTEM, self.system_prompt)
-        for role, text in self.history:
-            if role == "user":
-                ids += self._encode_turn(USER, text)
-            else:
-                ids += self._encode_turn(ASSISTANT, text)
-                if tokenizer.eos_id is not None:
-                    ids.append(tokenizer.eos_id)
-        # Open an assistant turn for the model to complete.
-        ids.append(tokenizer.special_id(ASSISTANT))
-        return ids
+        """Render the full conversation into a token id sequence.
+
+        Uses the shared :func:`localneuro.chat_format.format_chat` helper so the
+        layout matches exactly what instruction fine-tuning trains on.
+        """
+        return format_chat(
+            self.engine.tokenizer,
+            self.history,
+            system=self.system_prompt,
+            add_generation_prompt=True,
+        )
 
     def _build_trimmed_prompt(self) -> List[int]:
         """Build the prompt, dropping the oldest turns if it would overflow."""
@@ -86,10 +77,12 @@ class ChatSession:
             ids = ids[-limit:]
         return ids
 
-    def send(
-        self, user_text: str, on_token: Optional[Callable[[str], None]] = None
-    ) -> str:
-        """Append a user message, generate a reply, and return it."""
+    def stream(self, user_text: str) -> Iterator[str]:
+        """Append a user message and yield the reply fragment by fragment.
+
+        Both the user message and the finished reply are recorded in
+        :attr:`history`.
+        """
         tokenizer = self.engine.tokenizer
         self.history.append(("user", user_text))
         prompt_ids = self._build_trimmed_prompt()
@@ -111,17 +104,26 @@ class ChatSession:
             fragment = decoder.step(token_id)
             if fragment:
                 pieces.append(fragment)
-                if on_token is not None:
-                    on_token(fragment)
+                yield fragment
         tail = decoder.flush()
         if tail:
             pieces.append(tail)
-            if on_token is not None:
-                on_token(tail)
+            yield tail
+        self.history.append(("assistant", "".join(pieces).strip()))
 
-        reply = "".join(pieces).strip()
-        self.history.append(("assistant", reply))
-        return reply
+    def send(
+        self, user_text: str, on_token: Optional[Callable[[str], None]] = None
+    ) -> str:
+        """Append a user message, generate a reply, and return it.
+
+        ``on_token`` (if given) receives each fragment as it is produced.
+        """
+        pieces: List[str] = []
+        for fragment in self.stream(user_text):
+            pieces.append(fragment)
+            if on_token is not None:
+                on_token(fragment)
+        return "".join(pieces).strip()
 
 
 def run_chat(
